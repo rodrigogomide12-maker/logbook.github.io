@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LogBook — Treino</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface2: #1f1f1f;
+    --border: #2a2a2a;
+    --accent: #c8ff00;
+    --accent2: #ff4d4d;
+    --accent3: #7eb8ff;
+    --text: #e8e8e8;
+    --muted: #666;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --display: 'Bebas Neue', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; overflow-x: hidden; }
+
+  header { border-bottom: 1px solid var(--border); padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; background: var(--bg); z-index: 100; }
+  .logo { font-family: var(--display); font-size: 1.8rem; letter-spacing: 0.05em; color: var(--accent); line-height: 1; }
+  .logo span { color: var(--text); }
+  .header-actions { display: flex; gap: 0.4rem; }
+
+  .btn { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.45rem 0.9rem; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.4rem; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-accent { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 500; }
+  .btn-accent:hover { background: #b8ef00; color: #000; border-color: #b8ef00; }
+  .btn-danger { border-color: var(--accent2); color: var(--accent2); }
+  .btn-danger:hover { background: var(--accent2); color: #fff; }
+  .btn-blue { border-color: var(--accent3); color: var(--accent3); }
+  .btn-blue:hover { background: var(--accent3); color: #000; }
+  .btn-sm { padding: 0.28rem 0.55rem; font-size: 0.62rem; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+
+  .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; overflow-x: auto; }
+  .tab { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.7rem 1.2rem; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none; white-space: nowrap; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); padding: 1.25rem; margin-bottom: 0.75rem; transition: border-color 0.15s; }
+  .card:hover { border-color: #3a3a3a; }
+  .card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.75rem; }
+  .card-title { font-family: var(--display); font-size: 1.3rem; letter-spacing: 0.05em; line-height: 1; }
+  .card-meta { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); letter-spacing: 0.08em; margin-top: 0.25rem; }
+  .card-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+
+  .badge { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.08em; padding: 0.18rem 0.45rem; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); text-transform: uppercase; }
+  .badge-accent { background: rgba(200,255,0,0.08); border-color: rgba(200,255,0,0.3); color: var(--accent); }
+  .badge-blue { background: rgba(126,184,255,0.08); border-color: rgba(126,184,255,0.3); color: var(--accent3); }
+
+  .exercise-item { border: 1px solid var(--border); margin-bottom: 0.4rem; background: var(--surface2); }
+  .exercise-header { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.9rem; cursor: pointer; gap: 0.5rem; }
+  .exercise-name { font-family: var(--mono); font-size: 0.78rem; color: var(--text); }
+  .exercise-summary { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); }
+  .sets-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.68rem; }
+  .sets-table th { text-align: left; padding: 0.35rem 0.9rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.58rem; border-top: 1px solid var(--border); background: var(--surface); }
+  .sets-table td { padding: 0.35rem 0.9rem; border-top: 1px solid var(--border); }
+  .set-num { color: var(--muted); }
+  .set-reps { color: var(--accent); font-weight: 500; }
+  .set-load { color: var(--accent3); }
+  .expand-icon { font-family: var(--mono); font-size: 0.65rem; color: var(--muted); transition: transform 0.15s; flex-shrink: 0; }
+  .exercise-item.expanded .expand-icon { transform: rotate(180deg); }
+  .exercise-sets-wrapper { display: none; }
+  .exercise-item.expanded .exercise-sets-wrapper { display: block; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 1rem; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; animation: slideUp 0.18s ease; }
+  @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--border); }
+  .modal-title { font-family: var(--display); font-size: 1.5rem; letter-spacing: 0.05em; color: var(--accent); }
+  .modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 0.2rem; transition: color 0.15s; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 1.4rem; }
+
+  .form-group { margin-bottom: 1.1rem; }
+  label { display: block; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.35rem; }
+  input[type="text"], input[type="number"], input[type="date"], textarea, select { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.6rem 0.7rem; font-family: var(--mono); font-size: 0.78rem; outline: none; transition: border-color 0.15s; -webkit-appearance: none; }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--surface); }
+  textarea { resize: vertical; min-height: 70px; }
+
+  .sets-header { display: grid; grid-template-columns: 36px 1fr 1fr auto; gap: 0.4rem; margin-bottom: 0.35rem; }
+  .sets-header span { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .set-row { display: grid; grid-template-columns: 36px 1fr 1fr auto; gap: 0.4rem; align-items: center; margin-bottom: 0.35rem; }
+  .set-row-num { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); text-align: center; }
+  .remove-set { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.9rem; transition: color 0.15s; }
+  .remove-set:hover { color: var(--accent2); }
+
+  .section-title { font-family: var(--display); font-size: 2.2rem; letter-spacing: 0.05em; margin-bottom: 0.2rem; }
+  .section-sub { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 1.25rem; }
+
+  .empty { text-align: center; padding: 3rem 2rem; border: 1px dashed var(--border); }
+  .empty-icon { font-size: 2rem; margin-bottom: 0.75rem; opacity: 0.4; }
+  .empty-text { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); line-height: 1.8; }
+
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--accent); color: #000; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; padding: 0.65rem 1.1rem; z-index: 999; transform: translateY(80px); opacity: 0; transition: all 0.22s; text-transform: uppercase; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { background: var(--accent2); color: #fff; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+
+  .stats-row { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .stat { background: var(--surface); border: 1px solid var(--border); padding: 0.9rem 1.25rem; flex: 1; min-width: 90px; }
+  .stat-value { font-family: var(--display); font-size: 1.8rem; color: var(--accent); line-height: 1; }
+  .stat-value.blue { color: var(--accent3); }
+  .stat-label { font-family: var(--mono); font-size: 0.58rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.2rem; }
+
+  .backup-card { background: var(--surface); border: 1px solid var(--border); padding: 1.25rem; margin-bottom: 0.75rem; }
+  .backup-title { font-family: var(--display); font-size: 1.1rem; letter-spacing: 0.05em; margin-bottom: 0.35rem; }
+  .backup-desc { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); line-height: 1.7; margin-bottom: 0.9rem; }
+  .upload-zone { border: 1px dashed var(--border); padding: 1.75rem; text-align: center; cursor: pointer; transition: border-color 0.15s; }
+  .upload-zone:hover { border-color: var(--accent); }
+  .upload-text { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+
+  .history-entry { background: var(--surface); border: 1px solid var(--border); padding: 1rem 1.25rem; margin-bottom: 0.6rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+  .history-date { font-family: var(--display); font-size: 1.1rem; color: var(--accent3); letter-spacing: 0.05em; }
+  .history-ficha { font-family: var(--mono); font-size: 0.8rem; color: var(--text); margin-top: 0.15rem; }
+  .history-note { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); margin-top: 0.25rem; line-height: 1.5; }
+
+  .chart-wrapper { background: var(--surface); border: 1px solid var(--border); padding: 1.25rem; margin-bottom: 1rem; }
+  .chart-title { font-family: var(--display); font-size: 1.1rem; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
+
+  .evo-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.7rem; margin-top: 0.75rem; }
+  .evo-table th { text-align: left; padding: 0.4rem 0.75rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.58rem; border-bottom: 1px solid var(--border); }
+  .evo-table td { padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--border); color: var(--text); }
+  .evo-table tr:last-child td { border-bottom: none; }
+  .evo-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .evo-selects { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .evo-selects select { flex: 1; min-width: 160px; }
+
+  .pr-tag { display: inline-block; font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.1em; padding: 0.1rem 0.35rem; background: rgba(200,255,0,0.12); border: 1px solid rgba(200,255,0,0.35); color: var(--accent); text-transform: uppercase; margin-left: 0.4rem; vertical-align: middle; }
+
+  .treino-ex-block { background: var(--surface2); border: 1px solid var(--border); padding: 1rem; margin-bottom: 0.6rem; }
+  .treino-ex-name { font-family: var(--mono); font-size: 0.8rem; color: var(--accent3); margin-bottom: 0.6rem; }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">LOG<span>BOOK</span></div>
+  <div class="header-actions">
+    <button class="btn" onclick="exportBackup()">↓ Backup</button>
+    <button class="btn" onclick="document.getElementById('hiddenFileInput').click()">↑ Restaurar</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-value" id="statFichas">0</div><div class="stat-label">Fichas</div></div>
+    <div class="stat"><div class="stat-value" id="statExercicios">0</div><div class="stat-label">Exercícios</div></div>
+    <div class="stat"><div class="stat-value blue" id="statTreinos">0</div><div class="stat-label">Treinos</div></div>
+    <div class="stat"><div class="stat-value blue" id="statSeries">0</div><div class="stat-label">Séries Log</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('fichas',this)">Fichas</button>
+    <button class="tab" onclick="switchTab('historico',this)">Treinos</button>
+    <button class="tab" onclick="switchTab('evolucao',this)">Evolução</button>
+    <button class="tab" onclick="switchTab('backup',this)">Backup</button>
+  </div>
+
+  <!-- FICHAS -->
+  <div class="tab-content active" id="tab-fichas">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:1.25rem;">
+      <div><div class="section-title">Fichas</div><div class="section-sub">Seus programas de treino</div></div>
+      <button class="btn btn-accent" onclick="openModalFicha()">+ Nova Ficha</button>
+    </div>
+    <div id="fichasList"></div>
+  </div>
+
+  <!-- Treinos -->
+  <div class="tab-content" id="tab-historico">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:1.25rem;">
+      <div><div class="section-title">Treinos</div><div class="section-sub">Treinos realizados</div></div>
+      <button class="btn btn-accent" onclick="openModalTreino()">+ Registrar Treino</button>
+    </div>
+    <div id="historicoList"></div>
+  </div>
+
+  <!-- EVOLUÇÃO -->
+  <div class="tab-content" id="tab-evolucao">
+    <div class="section-title">Evolução</div>
+    <div class="section-sub">Progressão de carga ao longo do tempo</div>
+    <div class="evo-selects">
+      <select id="evoFicha" onchange="updateEvoExercicios()">
+        <option value="">Selecione a ficha...</option>
+      </select>
+      <select id="evoExercicio" onchange="renderEvolucao()">
+        <option value="">Selecione o exercício...</option>
+      </select>
+    </div>
+    <div id="evolucaoContent">
+      <div class="empty"><div class="empty-icon">📈</div><div class="empty-text">Selecione ficha e exercício para ver a evolução.</div></div>
+    </div>
+  </div>
+
+  <!-- BACKUP -->
+  <div class="tab-content" id="tab-backup">
+    <div class="section-title">Backup</div>
+    <div class="section-sub">Seus dados ficam apenas neste navegador</div>
+    <div class="backup-card">
+      <div class="backup-title">Exportar Backup</div>
+      <div class="backup-desc">Salva fichas, exercícios e todo o Treinos em um arquivo .json.<br>Guarde no Google Drive, e-mail ou pasta local.</div>
+      <button class="btn btn-accent" onclick="exportBackup()">↓ Baixar arquivo de backup</button>
+    </div>
+    <div class="backup-card">
+      <div class="backup-title">Restaurar Backup</div>
+      <div class="backup-desc">Importa um .json gerado anteriormente.<br><strong style="color:var(--accent2)">Atenção:</strong> substitui todos os dados atuais.</div>
+      <div class="upload-zone" onclick="document.getElementById('hiddenFileInput').click()">
+        <div style="font-size:1.8rem;margin-bottom:0.5rem;opacity:0.4;">📁</div>
+        <div class="upload-text">Clique para selecionar o arquivo .json</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL FICHA -->
+<div class="modal-overlay" id="modalFicha">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalFichaTitle">Nova Ficha</div>
+      <button class="modal-close" onclick="closeModal('modalFicha')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Nome *</label><input type="text" id="fichaName" placeholder="Ex: Treino A — Push"></div>
+      <div class="form-group"><label>Descrição</label><textarea id="fichaDesc" placeholder="Ex: Peitoral, ombro e tríceps..."></textarea></div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <select id="fichaCategoria">
+          <option value="">Sem categoria</option>
+          <option>Push</option><option>Pull</option><option>Legs</option>
+          <option>Full Body</option><option>Upper</option><option>Lower</option>
+          <option>Cardio</option><option>Outro</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+        <button class="btn" onclick="closeModal('modalFicha')">Cancelar</button>
+        <button class="btn btn-accent" onclick="saveFicha()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EXERCÍCIO -->
+<div class="modal-overlay" id="modalExercicio">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalExTitulo">Novo Exercício</div>
+      <button class="modal-close" onclick="closeModal('modalExercicio')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Nome *</label><input type="text" id="exNome" placeholder="Ex: Supino Reto com Barra"></div>
+      <div class="form-group"><label>Observações</label><input type="text" id="exObs" placeholder="Ex: Grip fechado..."></div>
+      <hr class="divider">
+      <label>Séries (referência)</label>
+      <div style="margin-top:0.5rem;">
+        <div class="sets-header"><span style="text-align:center;">#</span><span>Reps</span><span>Carga (kg)</span><span></span></div>
+        <div id="setsContainer"></div>
+      </div>
+      <button class="btn btn-sm" style="margin-top:0.4rem;" onclick="addSet()">+ Série</button>
+      <hr class="divider">
+      <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+        <button class="btn" onclick="closeModal('modalExercicio')">Cancelar</button>
+        <button class="btn btn-accent" onclick="saveExercicio()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR TREINO -->
+<div class="modal-overlay" id="modalTreino">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <div class="modal-title">Registrar Treino</div>
+      <button class="modal-close" onclick="closeModal('modalTreino')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+        <div class="form-group" style="flex:1;min-width:140px;"><label>Data *</label><input type="date" id="treinoData"></div>
+        <div class="form-group" style="flex:2;min-width:180px;"><label>Ficha *</label>
+          <select id="treinoFicha" onchange="renderTreinoExs()"><option value="">Selecione...</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Notas</label><textarea id="treinoNota" placeholder="Como foi o treino, disposição, etc..." style="min-height:55px;"></textarea></div>
+      <hr class="divider">
+      <div id="treinoExsArea"></div>
+      <hr class="divider">
+      <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+        <button class="btn" onclick="closeModal('modalTreino')">Cancelar</button>
+        <button class="btn btn-accent" onclick="saveTreino()">Salvar Treino</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VER TREINO -->
+<div class="modal-overlay" id="modalVerTreino">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <div class="modal-title" id="verTreinoTitle">Treino</div>
+      <button class="modal-close" onclick="closeModal('modalVerTreino')">✕</button>
+    </div>
+    <div class="modal-body" id="verTreinoBody"></div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR -->
+<div class="modal-overlay" id="modalConfirm">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--accent2)">Confirmar</div>
+      <button class="modal-close" onclick="closeModal('modalConfirm')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-family:var(--mono);font-size:0.75rem;line-height:1.7;color:var(--muted);margin-bottom:1.25rem;" id="confirmMsg"></p>
+      <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+        <button class="btn" onclick="closeModal('modalConfirm')">Cancelar</button>
+        <button class="btn btn-danger" id="confirmBtn">Excluir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="hiddenFileInput" accept=".json" style="display:none" onchange="importBackup(event)">
+
+<script>
+// === DATA ===
+let db = { fichas: [], historico: [] };
+
+function loadDB() {
+  try { const r = localStorage.getItem('logbook_v3'); if (r) db = JSON.parse(r); } catch(e) {}
+  if (!db.historico) db.historico = [];
+}
+function saveDB() { localStorage.setItem('logbook_v3', JSON.stringify(db)); updateStats(); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fmtDate(iso) { if (!iso) return ''; const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; }
+function todayISO() { return new Date().toISOString().slice(0,10); }
+
+function updateStats() {
+  document.getElementById('statFichas').textContent = db.fichas.length;
+  let ex=0; db.fichas.forEach(f => ex += (f.exercicios||[]).length);
+  document.getElementById('statExercicios').textContent = ex;
+  document.getElementById('statTreinos').textContent = db.historico.length;
+  let s=0; db.historico.forEach(t => (t.exercicios||[]).forEach(e => s += (e.sets||[]).length));
+  document.getElementById('statSeries').textContent = s;
+}
+
+// === TABS ===
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'historico') renderHistorico();
+  if (name === 'evolucao') populateEvoSelects();
+}
+
+// === RENDER FICHAS ===
+function renderFichas() {
+  const c = document.getElementById('fichasList');
+  if (!db.fichas.length) {
+    c.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Nenhuma ficha cadastrada.<br>Clique em "+ Nova Ficha" para começar.</div></div>`;
+    return;
+  }
+  c.innerHTML = db.fichas.map(f => {
+    const exHTML = (f.exercicios||[]).map(ex => {
+      const rows = (ex.sets||[]).map((s,i) => `
+        <tr>
+          <td class="set-num">${i+1}</td>
+          <td class="set-reps">${s.reps} reps</td>
+          <td class="set-load">${s.carga||0} kg</td>
+          <td><button class="btn btn-sm btn-danger" onclick="deleteSet('${f.id}','${ex.id}',${i})">✕</button></td>
+        </tr>`).join('');
+      return `
+        <div class="exercise-item" id="ex_${ex.id}">
+          <div class="exercise-header" onclick="toggleEx('${ex.id}')">
+            <div style="flex:1;min-width:0;">
+              <div class="exercise-name">${ex.nome}</div>
+              ${ex.obs?`<div class="exercise-summary">${ex.obs}</div>`:''}
+            </div>
+            <div style="display:flex;align-items:center;gap:0.4rem;flex-shrink:0;">
+              <span class="badge">${(ex.sets||[]).length}s</span>
+              <button class="btn btn-sm" onclick="openModalEx('${f.id}','${ex.id}');event.stopPropagation()">Ed</button>
+              <button class="btn btn-sm btn-danger" onclick="confirmDelEx('${f.id}','${ex.id}');event.stopPropagation()">✕</button>
+              <span class="expand-icon">▼</span>
+            </div>
+          </div>
+          <div class="exercise-sets-wrapper">
+            <table class="sets-table">
+              <thead><tr><th>#</th><th>Reps</th><th>Carga</th><th></th></tr></thead>
+              <tbody>${rows||`<tr><td colspan="4" style="padding:0.6rem 0.9rem;font-family:var(--mono);font-size:0.68rem;color:var(--muted);">Sem séries.</td></tr>`}</tbody>
+            </table>
+            <div style="padding:0.6rem 0.9rem;border-top:1px solid var(--border);">
+              <button class="btn btn-sm" onclick="openModalEx('${f.id}','${ex.id}',true)">+ Série</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">${f.nome}</div>
+            <div class="card-meta">${f.categoria?`<span class="badge badge-accent" style="margin-right:0.4rem;">${f.categoria}</span>`:''} ${(f.exercicios||[]).length} exercício(s)</div>
+            ${f.desc?`<div style="font-family:var(--mono);font-size:0.68rem;color:var(--muted);margin-top:0.3rem;">${f.desc}</div>`:''}
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-sm" onclick="openModalFicha('${f.id}')">Editar</button>
+            <button class="btn btn-sm btn-danger" onclick="confirmDelFicha('${f.id}')">✕</button>
+          </div>
+        </div>
+        <div>${exHTML}</div>
+        <div style="margin-top:0.75rem;"><button class="btn btn-sm btn-accent" onclick="openModalEx('${f.id}')">+ Exercício</button></div>
+      </div>`;
+  }).join('');
+}
+function toggleEx(id) { document.getElementById('ex_'+id).classList.toggle('expanded'); }
+
+// === FICHA MODAL ===
+let editFichaId = null;
+function openModalFicha(id) {
+  editFichaId = id||null;
+  document.getElementById('modalFichaTitle').textContent = id ? 'Editar Ficha' : 'Nova Ficha';
+  if (id) {
+    const f = db.fichas.find(f=>f.id===id);
+    document.getElementById('fichaName').value = f.nome;
+    document.getElementById('fichaDesc').value = f.desc||'';
+    document.getElementById('fichaCategoria').value = f.categoria||'';
+  } else {
+    document.getElementById('fichaName').value = '';
+    document.getElementById('fichaDesc').value = '';
+    document.getElementById('fichaCategoria').value = '';
+  }
+  document.getElementById('modalFicha').classList.add('open');
+}
+function saveFicha() {
+  const nome = document.getElementById('fichaName').value.trim();
+  if (!nome) { showToast('Informe o nome', true); return; }
+  const desc = document.getElementById('fichaDesc').value.trim();
+  const categoria = document.getElementById('fichaCategoria').value;
+  if (editFichaId) {
+    const f = db.fichas.find(f=>f.id===editFichaId);
+    Object.assign(f, {nome,desc,categoria});
+  } else {
+    db.fichas.push({id:uid(),nome,desc,categoria,exercicios:[]});
+  }
+  saveDB(); renderFichas(); closeModal('modalFicha'); showToast(editFichaId?'Ficha atualizada!':'Ficha criada!');
+}
+
+// === EXERCÍCIO MODAL ===
+let curFichaId=null, editExId=null, sets=[];
+function openModalEx(fichaId, exId, addSerie) {
+  curFichaId=fichaId; editExId=exId||null; sets=[];
+  document.getElementById('modalExTitulo').textContent = exId?'Editar Exercício':'Novo Exercício';
+  document.getElementById('exNome').value=''; document.getElementById('exObs').value='';
+  if (exId) {
+    const ex = db.fichas.find(f=>f.id===fichaId).exercicios.find(e=>e.id===exId);
+    document.getElementById('exNome').value = ex.nome;
+    document.getElementById('exObs').value = ex.obs||'';
+    sets = JSON.parse(JSON.stringify(ex.sets||[]));
+  } else { sets=[{reps:'',carga:''}]; }
+  renderSets();
+  document.getElementById('modalExercicio').classList.add('open');
+  if (addSerie) addSet();
+}
+function renderSets() {
+  document.getElementById('setsContainer').innerHTML = sets.map((s,i)=>`
+    <div class="set-row">
+      <div class="set-row-num">${i+1}</div>
+      <input type="number" min="1" placeholder="12" value="${s.reps}" oninput="sets[${i}].reps=this.value" style="text-align:center;">
+      <input type="number" min="0" step="0.5" placeholder="0" value="${s.carga}" oninput="sets[${i}].carga=this.value" style="text-align:center;">
+      <button class="remove-set" onclick="removeSet(${i})">✕</button>
+    </div>`).join('');
+}
+function addSet() {
+  const last=sets[sets.length-1]||{reps:'',carga:''};
+  sets.push({reps:last.reps,carga:last.carga}); renderSets();
+}
+function removeSet(i) {
+  if(sets.length<=1){showToast('Mínimo 1 série',true);return;}
+  sets.splice(i,1); renderSets();
+}
+function saveExercicio() {
+  const nome=document.getElementById('exNome').value.trim();
+  if(!nome){showToast('Informe o nome',true);return;}
+  const obs=document.getElementById('exObs').value.trim();
+  const f=db.fichas.find(f=>f.id===curFichaId);
+  const sc=sets.map(s=>({reps:parseFloat(s.reps)||0,carga:parseFloat(s.carga)||0}));
+  if(editExId){const ex=f.exercicios.find(e=>e.id===editExId);ex.nome=nome;ex.obs=obs;ex.sets=sc;}
+  else{f.exercicios.push({id:uid(),nome,obs,sets:sc});}
+  saveDB(); renderFichas(); closeModal('modalExercicio'); showToast(editExId?'Atualizado!':'Adicionado!');
+}
+
+// === DELETES ===
+function confirmDelFicha(id) {
+  const f=db.fichas.find(f=>f.id===id);
+  document.getElementById('confirmMsg').textContent=`Excluir ficha "${f.nome}"? Todos os exercícios serão removidos.`;
+  document.getElementById('confirmBtn').onclick=()=>{
+    db.fichas=db.fichas.filter(f=>f.id!==id); saveDB(); renderFichas(); closeModal('modalConfirm'); showToast('Ficha excluída');
+  };
+  document.getElementById('modalConfirm').classList.add('open');
+}
+function confirmDelEx(fichaId,exId) {
+  const ex=db.fichas.find(f=>f.id===fichaId).exercicios.find(e=>e.id===exId);
+  document.getElementById('confirmMsg').textContent=`Excluir "${ex.nome}"?`;
+  document.getElementById('confirmBtn').onclick=()=>{
+    const f=db.fichas.find(f=>f.id===fichaId); f.exercicios=f.exercicios.filter(e=>e.id!==exId);
+    saveDB(); renderFichas(); closeModal('modalConfirm'); showToast('Exercício excluído');
+  };
+  document.getElementById('modalConfirm').classList.add('open');
+}
+function deleteSet(fichaId,exId,idx) {
+  const ex=db.fichas.find(f=>f.id===fichaId).exercicios.find(e=>e.id===exId);
+  if(ex.sets.length<=1){showToast('Mínimo 1 série',true);return;}
+  ex.sets.splice(idx,1); saveDB(); renderFichas();
+  setTimeout(()=>{const el=document.getElementById('ex_'+exId);if(el)el.classList.add('expanded');},10);
+}
+
+// === TREINO ===
+function openModalTreino() {
+  document.getElementById('treinoData').value = todayISO();
+  document.getElementById('treinoNota').value = '';
+  const sel=document.getElementById('treinoFicha');
+  sel.innerHTML='<option value="">Selecione a ficha...</option>'+
+    db.fichas.map(f=>`<option value="${f.id}">${f.nome}${f.categoria?' ('+f.categoria+')':''}</option>`).join('');
+  document.getElementById('treinoExsArea').innerHTML='<div style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);">Selecione uma ficha para registrar as cargas realizadas.</div>';
+  document.getElementById('modalTreino').classList.add('open');
+}
+function renderTreinoExs() {
+  const fichaId=document.getElementById('treinoFicha').value;
+  const area=document.getElementById('treinoExsArea');
+  if(!fichaId){area.innerHTML='';return;}
+  const ficha=db.fichas.find(f=>f.id===fichaId);
+  if(!(ficha.exercicios||[]).length){area.innerHTML='<div style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);">Essa ficha não tem exercícios.</div>';return;}
+  area.innerHTML=ficha.exercicios.map(ex=>{
+    const inputs=(ex.sets||[]).map((s,i)=>`
+      <div class="set-row">
+        <div class="set-row-num">${i+1}</div>
+        <input type="number" min="1" placeholder="${s.reps}" value="${s.reps}" id="tr_r_${ex.id}_${i}" style="text-align:center;">
+        <input type="number" min="0" step="0.5" placeholder="${s.carga}" value="${s.carga}" id="tr_c_${ex.id}_${i}" style="text-align:center;">
+        <div></div>
+      </div>`).join('');
+    return `<div class="treino-ex-block">
+      <div class="treino-ex-name">${ex.nome}</div>
+      <div class="sets-header"><span style="text-align:center;">#</span><span>Reps</span><span>Carga (kg)</span><span></span></div>
+      ${inputs}
+    </div>`;
+  }).join('');
+}
+function saveTreino() {
+  const data=document.getElementById('treinoData').value;
+  const fichaId=document.getElementById('treinoFicha').value;
+  const nota=document.getElementById('treinoNota').value.trim();
+  if(!data||!fichaId){showToast('Preencha data e ficha',true);return;}
+  const ficha=db.fichas.find(f=>f.id===fichaId);
+  const exercicios=ficha.exercicios.map(ex=>{
+    const sets=(ex.sets||[]).map((s,i)=>({
+      reps:parseFloat(document.getElementById(`tr_r_${ex.id}_${i}`)?.value)||s.reps,
+      carga:parseFloat(document.getElementById(`tr_c_${ex.id}_${i}`)?.value)||s.carga
+    }));
+    return{exId:ex.id,nome:ex.nome,sets};
+  });
+  db.historico.unshift({id:uid(),data,fichaId,fichaNome:ficha.nome,fichaCategoria:ficha.categoria||'',nota,exercicios});
+  saveDB(); renderHistorico(); closeModal('modalTreino'); showToast('Treino registrado!');
+}
+
+// === Treinos ===
+function renderHistorico() {
+  const c=document.getElementById('historicoList');
+  if(!db.historico.length){
+    c.innerHTML=`<div class="empty"><div class="empty-icon">🏋️</div><div class="empty-text">Nenhum treino registrado ainda.<br>Clique em "+ Registrar Treino".</div></div>`;
+    return;
+  }
+  c.innerHTML=db.historico.map(t=>{
+    const totS=(t.exercicios||[]).reduce((a,e)=>a+(e.sets||[]).length,0);
+    const maxC=Math.max(...(t.exercicios||[]).flatMap(e=>(e.sets||[]).map(s=>s.carga||0)),0);
+    return `<div class="history-entry">
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+          <div class="history-date">${fmtDate(t.data)}</div>
+          ${t.fichaCategoria?`<span class="badge badge-accent">${t.fichaCategoria}</span>`:''}
+        </div>
+        <div class="history-ficha">${t.fichaNome}</div>
+        <div class="history-note">${(t.exercicios||[]).length} exercícios · ${totS} séries${maxC?' · max '+maxC+'kg':''}${t.nota?' · '+t.nota:''}</div>
+      </div>
+      <div style="display:flex;gap:0.4rem;flex-shrink:0;">
+        <button class="btn btn-sm btn-blue" onclick="verTreino('${t.id}')">Ver</button>
+        <button class="btn btn-sm btn-danger" onclick="confirmDelTreino('${t.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function verTreino(id) {
+  const t=db.historico.find(t=>t.id===id);
+  document.getElementById('verTreinoTitle').textContent=fmtDate(t.data)+' — '+t.fichaNome;
+  const exHTML=(t.exercicios||[]).map(ex=>{
+    const rows=(ex.sets||[]).map((s,i)=>`<tr><td class="set-num">${i+1}</td><td class="set-reps">${s.reps} reps</td><td class="set-load">${s.carga} kg</td></tr>`).join('');
+    return `<div style="margin-bottom:1rem;">
+      <div style="font-family:var(--mono);font-size:0.78rem;color:var(--accent3);margin-bottom:0.4rem;">${ex.nome}</div>
+      <table class="sets-table"><thead><tr><th>#</th><th>Reps</th><th>Carga</th></tr></thead><tbody>${rows}</tbody></table>
+    </div>`;
+  }).join('');
+  document.getElementById('verTreinoBody').innerHTML=
+    (t.nota?`<div style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);margin-bottom:1rem;padding:0.6rem 0.8rem;border:1px solid var(--border);line-height:1.6;">${t.nota}</div>`:'') + exHTML;
+  document.getElementById('modalVerTreino').classList.add('open');
+}
+function confirmDelTreino(id) {
+  document.getElementById('confirmMsg').textContent='Excluir este registro de treino?';
+  document.getElementById('confirmBtn').onclick=()=>{
+    db.historico=db.historico.filter(t=>t.id!==id); saveDB(); renderHistorico(); closeModal('modalConfirm'); showToast('Treino excluído');
+  };
+  document.getElementById('modalConfirm').classList.add('open');
+}
+
+// === EVOLUÇÃO ===
+function populateEvoSelects() {
+  const sel=document.getElementById('evoFicha');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Selecione a ficha...</option>'+
+    db.fichas.map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');
+  if(cur) sel.value=cur;
+  updateEvoExercicios();
+}
+function updateEvoExercicios() {
+  const fichaId=document.getElementById('evoFicha').value;
+  const sel=document.getElementById('evoExercicio');
+  sel.innerHTML='<option value="">Selecione o exercício...</option>';
+  if(!fichaId){renderEvolucao();return;}
+  const f=db.fichas.find(f=>f.id===fichaId);
+  (f.exercicios||[]).forEach(ex=>{ sel.innerHTML+=`<option value="${ex.id}">${ex.nome}</option>`; });
+  renderEvolucao();
+}
+function renderEvolucao() {
+  const fichaId=document.getElementById('evoFicha').value;
+  const exId=document.getElementById('evoExercicio').value;
+  const content=document.getElementById('evolucaoContent');
+
+  // destroy existing charts
+  ['evoChart','evoChartVol'].forEach(id=>{try{Chart.getChart(id)?.destroy();}catch(e){}});
+
+  if(!fichaId||!exId){
+    content.innerHTML=`<div class="empty"><div class="empty-icon">📈</div><div class="empty-text">Selecione ficha e exercício para ver a evolução.</div></div>`;
+    return;
+  }
+
+  const entries=[];
+  db.historico.slice().reverse().forEach(t=>{
+    if(t.fichaId!==fichaId) return;
+    const ex=(t.exercicios||[]).find(e=>e.exId===exId);
+    if(!ex) return;
+    const maxCarga=Math.max(...(ex.sets||[]).map(s=>s.carga||0),0);
+    const maxReps=Math.max(...(ex.sets||[]).map(s=>s.reps||0),0);
+    const vol=(ex.sets||[]).reduce((a,s)=>a+(s.carga*s.reps),0);
+    entries.push({data:t.data,label:fmtDate(t.data),maxCarga,maxReps,vol,sets:ex.sets});
+  });
+
+  if(!entries.length){
+    content.innerHTML=`<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Nenhum treino registrado com este exercício ainda.<br>Registre treinos no "Treinos" para ver a evolução.</div></div>`;
+    return;
+  }
+
+  const prCarga=Math.max(...entries.map(e=>e.maxCarga));
+  const labels=entries.map(e=>e.label);
+
+  const tableRows=[...entries].reverse().map((e,i,arr)=>{
+    const prev=arr[i+1];
+    const diff=prev?(e.maxCarga-prev.maxCarga):null;
+    const arrow=diff===null?'—':diff>0?`<span style="color:var(--accent)">▲ +${diff}kg</span>`:diff<0?`<span style="color:var(--accent2)">▼ ${diff}kg</span>`:`<span style="color:var(--muted)">—</span>`;
+    const isPR=e.maxCarga===prCarga&&prCarga>0?`<span class="pr-tag">PR</span>`:'';
+    return `<tr><td>${e.label}</td><td>${e.maxCarga}kg${isPR}</td><td>${e.maxReps}</td><td>${e.vol.toFixed(0)}kg</td><td>${arrow}</td></tr>`;
+  }).join('');
+
+  content.innerHTML=`
+    <div class="chart-wrapper">
+      <div class="chart-title">Carga Máxima por Treino</div>
+      <canvas id="evoChart" style="max-height:240px;"></canvas>
+    </div>
+    <div class="chart-wrapper">
+      <div class="chart-title">Volume Total <span style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);font-weight:normal;">(reps × carga)</span></div>
+      <canvas id="evoChartVol" style="max-height:200px;"></canvas>
+    </div>
+    <div class="chart-wrapper">
+      <div class="chart-title">Treinos Detalhado</div>
+      <table class="evo-table">
+        <thead><tr><th>Data</th><th>Carga Máx.</th><th>Reps Máx.</th><th>Volume</th><th>Variação</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>`;
+
+  const base={responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{color:'#555',font:{family:'DM Mono',size:10}},grid:{color:'#1a1a1a'}},
+            y:{ticks:{color:'#555',font:{family:'DM Mono',size:10}},grid:{color:'#1a1a1a'}}}};
+
+  new Chart(document.getElementById('evoChart'),{type:'line',data:{labels,datasets:[{
+    data:entries.map(e=>e.maxCarga),borderColor:'#c8ff00',backgroundColor:'rgba(200,255,0,0.06)',
+    pointBackgroundColor:entries.map(e=>e.maxCarga===prCarga&&prCarga>0?'#c8ff00':'#333'),
+    pointBorderColor:entries.map(e=>e.maxCarga===prCarga&&prCarga>0?'#c8ff00':'#555'),
+    pointRadius:entries.map(e=>e.maxCarga===prCarga&&prCarga>0?6:3),
+    tension:0.3,fill:true,borderWidth:2
+  }]},options:base});
+
+  new Chart(document.getElementById('evoChartVol'),{type:'bar',data:{labels,datasets:[{
+    data:entries.map(e=>e.vol),backgroundColor:'rgba(126,184,255,0.2)',borderColor:'#7eb8ff',borderWidth:1
+  }]},options:base});
+}
+
+// === MODAIS ===
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');});
+});
+
+// === BACKUP ===
+function exportBackup(){
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`logbook_backup_${todayISO()}.json`; a.click();
+  URL.revokeObjectURL(url); showToast('Backup exportado!');
+}
+function importBackup(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const imp=JSON.parse(ev.target.result);
+      if(!imp.fichas) throw new Error();
+      db=imp; if(!db.historico) db.historico=[];
+      saveDB(); renderFichas(); renderHistorico(); showToast('Backup restaurado!');
+    }catch{showToast('Arquivo inválido',true);}
+    e.target.value='';
+  };
+  r.readAsText(file);
+}
+
+// === TOAST ===
+let toastTimer;
+function showToast(msg,err){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show'+(err?' error':'');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// === INIT ===
+loadDB(); renderFichas(); updateStats();
+</script>
+</body>
+</html>
